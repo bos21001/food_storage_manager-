@@ -52,7 +52,7 @@ def test_delete_non_existing_food_type_by_id(db_connection):
 
 def test_create_and_read_food_storage(db_connection):
     food_type = create_food_type(db_connection, "Fruits")
-    food_storage = create_food_storage(db_connection, "Apple", 1.0, "kg", food_type["id"], "2022-12-31")
+    create_food_storage(db_connection, "Apple", 1.0, "kg", food_type["id"], "2022-12-31")
     result = read_food_type_by_id(db_connection, food_type["id"])
     assert result['name'] == "Fruits"
 
@@ -109,5 +109,29 @@ def test_create_and_read_all_food_storage(db_connection):
     assert read_apple_result['name'] == "Apple"
 
 
-# If you want to run the tests directly from this file, uncomment the line below
+# Boundary tests
+def test_create_food_type_with_empty_name(db_connection):
+    result = create_food_type(db_connection, "")
+    assert result == "A food type name cannot be empty."
+
+
+def test_create_food_storage_with_negative_quantity(db_connection):
+    food_type = create_food_type(db_connection, "Fruits")
+    result = create_food_storage(db_connection, "Apple", -1.0, "kg", food_type["id"], "2022-12-31")
+    assert result == "Quantity cannot be negative."
+
+
+# Integration tests
+def test_create_update_delete_food_type(db_connection):
+    food_type = create_food_type(db_connection, "Fruits")
+    assert food_type["name"] == "Fruits"
+
+    updated_food_type = update_food_type_by_id(db_connection, food_type["id"], "Vegetables")
+    assert updated_food_type["name"] == "Vegetables"
+
+    delete_food_type_by_id(db_connection, food_type["id"])
+    result = read_food_type_by_id(db_connection, food_type["id"])
+    assert result is None
+
+
 pytest.main(["-v", "--tb=line", "-rN", __file__])

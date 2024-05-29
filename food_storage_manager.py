@@ -81,6 +81,9 @@ def create_food_type(cursor, name):
 
     :return: dict
     """
+    if not name:
+        return "A food type name cannot be empty."
+
     cursor.execute("SELECT * FROM food_type WHERE name = ?", (name,))
     existing_food_type = cursor.fetchone()
     if existing_food_type is not None:
@@ -141,7 +144,7 @@ def read_food_type_by_id(cursor, food_storage_id):
     Retrieve a food type by id from the database.
 
     :param cursor: sqlite3.Cursor
-    :param id: int
+    :param food_storage_id: int
 
     Returns (dict):
         - id: int
@@ -171,7 +174,7 @@ def update_food_type_by_id(cursor, food_storage_id, name):
     Update a food type by id in the database.
 
     :param cursor: sqlite3.Cursor
-    :param id: int
+    :param food_storage_id: int
     :param name: str
 
     Returns (dict):
@@ -211,7 +214,7 @@ def delete_food_type_by_id(cursor, food_storage_id):
     Delete a food type by id from the database.
 
     :param cursor: sqlite3.Cursor
-    :param id: int
+    :param food_storage_id: int
     :return: str
     """
     existing_food_type = read_food_type_by_id(cursor, food_storage_id)
@@ -245,6 +248,9 @@ def create_food_storage(cursor, name, quantity, unit, food_type_id, expiration_d
         - created_at: str
         - updated_at: str
     """
+    if quantity < 0:
+        return "Quantity cannot be negative."
+
     existing_food_type = read_food_type_by_id(cursor, food_type_id)
     if existing_food_type is None:
         return "A food type with this id does not exist."
@@ -317,7 +323,7 @@ def read_food_storage_by_id(cursor, food_storage_id):
     Retrieve a food storage item by id from the database.
 
     :param cursor: sqlite3.Cursor
-    :param id: int
+    :param food_storage_id: int
 
     Returns (dict):
         - id: int
@@ -355,7 +361,7 @@ def update_food_storage_by_id(cursor, food_storage_id, name, quantity, unit, foo
     Update a food storage item by id in the database.
 
     :param cursor: sqlite3.Cursor
-    :param id: int
+    :param food_storage_id: int
     :param name: str
     :param quantity: float
     :param unit: str
@@ -405,7 +411,7 @@ def delete_food_storage_by_id(cursor, food_storage_id):
     Delete a food storage item by id from the database.
 
     :param cursor: sqlite3.Cursor
-    :param id: int
+    :param food_storage_id: int
     :return: None
     """
     existing_food_storage = read_food_storage_by_id(cursor, food_storage_id)
