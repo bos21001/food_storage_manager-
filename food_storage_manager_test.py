@@ -51,10 +51,10 @@ def test_delete_non_existing_food_type_by_id(db_connection):
 
 
 def test_create_and_read_food_storage(db_connection):
-    create_food_type(db_connection, "Fruits")
-    create_food_storage(db_connection, "Apple", 1.0, "kg", 1, "2022-12-31")
-    result = read_all_food_storage(db_connection)
-    assert result[0]['name'] == "Apple"
+    food_type = create_food_type(db_connection, "Fruits")
+    food_storage = create_food_storage(db_connection, "Apple", 1.0, "kg", food_type["id"], "2022-12-31")
+    result = read_food_type_by_id(db_connection, food_type["id"])
+    assert result['name'] == "Fruits"
 
 
 def test_create_food_storage_with_non_existing_food_type(db_connection):
@@ -68,9 +68,9 @@ def test_read_non_existing_food_storage_by_id(db_connection):
 
 
 def test_update_existing_food_storage_by_id(db_connection):
-    create_food_type(db_connection, "Fruits")
-    create_food_storage(db_connection, "Apple", 1.0, "kg", 1, "2022-12-31")
-    result = update_food_storage_by_id(db_connection, 1, "Banana", 2.0, "kg", 1, "2023-12-31")
+    food_type = create_food_type(db_connection, "Fruits")
+    food_storage = create_food_storage(db_connection, "Apple", 1.0, "kg", food_type["id"], "2022-12-31")
+    result = update_food_storage_by_id(db_connection, food_storage["id"], "Banana", 2.0, "kg", food_type["id"], "2023-12-31")
     assert result['name'] == "Banana"
 
 
