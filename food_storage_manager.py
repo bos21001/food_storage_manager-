@@ -1,14 +1,11 @@
-"""
-The program helps people manage their food inventory, reducing
-unnecessary purchases and food waste. It keeps track of pantry,
-fridge, and freezer items, ensuring users use food before it spoils
-and make informed purchasing decisions. Additionally, it can monitor
-emergency supplies like canned goods and bottr, aiding in
-preparedness for natural disasters or power outages.
-"""
 import sqlite3
 import tkinter as tk
+from tkinter import ttk
 import datetime
+
+# Global variables
+(CONNECTION, CURSOR, ROOT, ENTRY_NAME, ENTRY_QUANTITY, ENTRY_UNITY, ENTRY_EXPIRATION_DATE, FOOD_TYPE_COMBOBOX,
+ FOOD_STORAGE_TREE) = (None, None, None, None, None, None, None, None, None)
 
 
 def database_connection():
@@ -45,7 +42,6 @@ def database_connection():
         FOREIGN KEY (food_type_id) REFERENCES food_type (id)
     )
     """)
-
     return connection, cursor
 
 
@@ -140,7 +136,7 @@ def read_all_food_types(cursor):
     return all_food_types
 
 
-def read_food_type_by_id(cursor, id):
+def read_food_type_by_id(cursor, food_storage_id):
     """
     Retrieve a food type by id from the database.
 
@@ -156,8 +152,7 @@ def read_food_type_by_id(cursor, id):
     cursor.execute("""
     SELECT * FROM food_type
     WHERE id = ?
-    """, (id,))
-
+    """, (food_storage_id,))
     food_type = cursor.fetchone()
 
     if food_type is None:
@@ -171,7 +166,7 @@ def read_food_type_by_id(cursor, id):
     }
 
 
-def update_food_type_by_id(cursor, id, name):
+def update_food_type_by_id(cursor, food_storage_id, name):
     """
     Update a food type by id in the database.
 
@@ -185,7 +180,7 @@ def update_food_type_by_id(cursor, id, name):
         - created_at: str
         - updated_at: str
     """
-    existing_food_type = read_food_type_by_id(cursor, id)
+    existing_food_type = read_food_type_by_id(cursor, food_storage_id)
     if existing_food_type is None:
         return "A food type with this id does not exist."
 
@@ -200,10 +195,9 @@ def update_food_type_by_id(cursor, id, name):
     UPDATE food_type
     SET name = ?, updated_at = ?
     WHERE id = ?
-    """, (name, updated_at, id))
+    """, (name, updated_at, food_storage_id))
 
-    food_type = read_food_type_by_id(cursor, id)
-
+    food_type = read_food_type_by_id(cursor, food_storage_id)
     return {
         "id": food_type["id"],
         "name": food_type["name"],
@@ -212,7 +206,7 @@ def update_food_type_by_id(cursor, id, name):
     }
 
 
-def delete_food_type_by_id(cursor, id):
+def delete_food_type_by_id(cursor, food_storage_id):
     """
     Delete a food type by id from the database.
 
@@ -220,14 +214,14 @@ def delete_food_type_by_id(cursor, id):
     :param id: int
     :return: str
     """
-    existing_food_type = read_food_type_by_id(cursor, id)
+    existing_food_type = read_food_type_by_id(cursor, food_storage_id)
     if existing_food_type is None:
         return "A food type with this id does not exist."
 
     cursor.execute("""
     DELETE FROM food_type
     WHERE id = ?
-    """, (id,))
+    """, (food_storage_id,))
 
 
 def create_food_storage(cursor, name, quantity, unit, food_type_id, expiration_date):
@@ -318,7 +312,7 @@ def read_all_food_storage(cursor):
     return all_food_storage
 
 
-def read_food_storage_by_id(cursor, id):
+def read_food_storage_by_id(cursor, food_storage_id):
     """
     Retrieve a food storage item by id from the database.
 
@@ -338,8 +332,7 @@ def read_food_storage_by_id(cursor, id):
     cursor.execute("""
     SELECT * FROM food_storage
     WHERE id = ?
-    """, (id,))
-
+    """, (food_storage_id,))
     food_storage = cursor.fetchone()
 
     if food_storage is None:
@@ -357,7 +350,7 @@ def read_food_storage_by_id(cursor, id):
     }
 
 
-def update_food_storage_by_id(cursor, id, name, quantity, unit, food_type_id, expiration_date):
+def update_food_storage_by_id(cursor, food_storage_id, name, quantity, unit, food_type_id, expiration_date):
     """
     Update a food storage item by id in the database.
 
@@ -379,7 +372,7 @@ def update_food_storage_by_id(cursor, id, name, quantity, unit, food_type_id, ex
         - created_at: str
         - updated_at: str
     """
-    existing_food_storage = read_food_storage_by_id(cursor, id)
+    existing_food_storage = read_food_storage_by_id(cursor, food_storage_id)
     if existing_food_storage is None:
         return "A food storage item with this id does not exist."
 
@@ -389,10 +382,8 @@ def update_food_storage_by_id(cursor, id, name, quantity, unit, food_type_id, ex
     UPDATE food_storage
     SET name = ?, quantity = ?, unit = ?, food_type_id = ?, expiration_date = ?, updated_at = ?
     WHERE id = ?
-    """, (name, quantity, unit, food_type_id, expiration_date, updated_at, id))
-
-    food_storage = read_food_storage_by_id(cursor, id)
-
+    """, (name, quantity, unit, food_type_id, expiration_date, updated_at, food_storage_id))
+    food_storage = read_food_storage_by_id(cursor, food_storage_id)
     return {
         "id": food_storage["id"],
         "name": food_storage["name"],
@@ -405,7 +396,7 @@ def update_food_storage_by_id(cursor, id, name, quantity, unit, food_type_id, ex
     }
 
 
-def delete_food_storage_by_id(cursor, id):
+def delete_food_storage_by_id(cursor, food_storage_id):
     """
     Delete a food storage item by id from the database.
 
@@ -413,23 +404,123 @@ def delete_food_storage_by_id(cursor, id):
     :param id: int
     :return: None
     """
-    existing_food_storage = read_food_storage_by_id(cursor, id)
+    existing_food_storage = read_food_storage_by_id(cursor, food_storage_id)
     if existing_food_storage is None:
         return "A food storage item with this id does not exist."
 
     cursor.execute("""
     DELETE FROM food_storage
     WHERE id = ?
-    """, (id,))
+    """, (food_storage_id,))
+
+
+def on_create_food_storage():
+    name = ENTRY_NAME.get()
+    quantity = float(ENTRY_QUANTITY.get())
+    unit = ENTRY_UNITY.get()
+    food_type = FOOD_TYPE_COMBOBOX.get()
+    expiration_date = ENTRY_EXPIRATION_DATE.get()
+
+    CURSOR.execute("SELECT id FROM food_type WHERE name = ?", (food_type,))
+    food_type_id = CURSOR.fetchone()[0]
+
+    create_food_storage(CURSOR, name, quantity, unit, food_type_id, expiration_date)
+    CONNECTION.commit()
+    load_food_storage_data()
+
+
+def on_update_food_storage():
+    selected_item = FOOD_STORAGE_TREE.selection()[0]
+    food_storage_id = FOOD_STORAGE_TREE.item(selected_item, "values")[0]
+
+    name = ENTRY_NAME.get()
+    quantity = float(ENTRY_QUANTITY.get())
+    unit = ENTRY_UNITY.get()
+    food_type = FOOD_TYPE_COMBOBOX.get()
+    expiration_date = ENTRY_EXPIRATION_DATE.get()
+
+    CURSOR.execute("SELECT id FROM food_type WHERE name = ?", (food_type,))
+    food_type_id = CURSOR.fetchone()[0]
+
+    update_food_storage_by_id(CURSOR, food_storage_id, name, quantity, unit, food_type_id, expiration_date)
+    CONNECTION.commit()
+    load_food_storage_data()
+
+
+def on_delete_food_storage():
+    selected_item = FOOD_STORAGE_TREE.selection()[0]
+    food_storage_id = FOOD_STORAGE_TREE.item(selected_item, "values")[0]
+    delete_food_storage_by_id(CURSOR, food_storage_id)
+    CONNECTION.commit()
+    load_food_storage_data()
+
+
+def load_food_storage_data():
+    for item in FOOD_STORAGE_TREE.get_children():
+        FOOD_STORAGE_TREE.delete(item)
+    food_storage_items = read_all_food_storage(CURSOR)
+    for item in food_storage_items:
+        FOOD_STORAGE_TREE.insert('', 'end', values=(
+            item["id"], item["name"], item["quantity"], item["unit"], item["food_type_id"], item["expiration_date"]))
+
+
+def create_labels():
+    tk.Label(ROOT, text="Name:").grid(row=0, column=0)
+    tk.Label(ROOT, text="Quantity:").grid(row=1, column=0)
+    tk.Label(ROOT, text="Unit:").grid(row=2, column=0)
+    tk.Label(ROOT, text="Food Type:").grid(row=3, column=0)
+    tk.Label(ROOT, text="Expiration Date (YYYY-MM-DD):").grid(row=4, column=0)
+
+
+def create_entries():
+    global ENTRY_NAME, ENTRY_QUANTITY, ENTRY_UNITY, ENTRY_EXPIRATION_DATE, FOOD_TYPE_COMBOBOX
+    ENTRY_NAME = tk.Entry(ROOT)
+    ENTRY_NAME.grid(row=0, column=1)
+    ENTRY_QUANTITY = tk.Entry(ROOT)
+    ENTRY_QUANTITY.grid(row=1, column=1)
+    ENTRY_UNITY = tk.Entry(ROOT)
+    ENTRY_UNITY.grid(row=2, column=1)
+    FOOD_TYPE_COMBOBOX = ttk.Combobox(ROOT, values=[ft["name"] for ft in read_all_food_types(CURSOR)])
+    FOOD_TYPE_COMBOBOX.grid(row=3, column=1)
+    ENTRY_EXPIRATION_DATE = tk.Entry(ROOT)
+    ENTRY_EXPIRATION_DATE.grid(row=4, column=1)
+
+
+def create_buttons():
+    tk.Button(ROOT, text="Add", command=on_create_food_storage).grid(row=5, column=0)
+    tk.Button(ROOT, text="Update", command=on_update_food_storage).grid(row=5, column=1)
+    tk.Button(ROOT, text="Delete", command=on_delete_food_storage).grid(row=5, column=2)
+
+
+def create_treeview():
+    global FOOD_STORAGE_TREE
+    columns = ("id", "name", "quantity", "unit", "food_type_id", "expiration_date")
+    FOOD_STORAGE_TREE = ttk.Treeview(ROOT, columns=columns, show="headings")
+    for col in columns:
+        FOOD_STORAGE_TREE.heading(col, text=col)
+    FOOD_STORAGE_TREE.grid(row=6, column=0, columnspan=3)
 
 
 def main():
-    connection, cursor = database_connection()
+    global CONNECTION, CURSOR, ROOT
+    CONNECTION, CURSOR = database_connection()
 
-    food_types = read_all_food_types(cursor)
+    food_types = read_all_food_types(CURSOR)
     if not food_types:
-        seed_food_types(cursor)
-        connection.commit()
+        seed_food_types(CURSOR)
+        CONNECTION.commit()
+
+    ROOT = tk.Tk()
+    ROOT.title("Food Storage Manager")
+
+    create_labels()
+    create_entries()
+    create_buttons()
+    create_treeview()
+
+    load_food_storage_data()
+
+    ROOT.mainloop()
 
 
 if __name__ == '__main__':
