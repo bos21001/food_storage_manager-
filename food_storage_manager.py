@@ -372,6 +372,10 @@ def update_food_storage_by_id(cursor, food_storage_id, name, quantity, unit, foo
         - created_at: str
         - updated_at: str
     """
+    existing_food_type = read_food_type_by_id(cursor, food_type_id)
+    if existing_food_type is None:
+        return "A food type with this id does not exist."
+
     existing_food_storage = read_food_storage_by_id(cursor, food_storage_id)
     if existing_food_storage is None:
         return "A food storage item with this id does not exist."
