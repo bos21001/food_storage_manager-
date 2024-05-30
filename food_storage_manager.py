@@ -4,8 +4,8 @@ from tkinter import ttk
 import datetime
 
 # Global variables
-(CONNECTION, CURSOR, ROOT, ENTRY_NAME, ENTRY_QUANTITY, ENTRY_UNITY, ENTRY_EXPIRATION_DATE, FOOD_TYPE_NAME_COMBOBOX,
- FOOD_STORAGE_TREE) = (None, None, None, None, None, None, None, None, None)
+global CONNECTION, CURSOR
+global ROOT, ENTRY_NAME, ENTRY_QUANTITY, ENTRY_UNITY, ENTRY_EXPIRATION_DATE, FOOD_TYPE_NAME_COMBOBOX, FOOD_STORAGE_TREE
 
 
 def database_connection():
