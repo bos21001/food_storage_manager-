@@ -103,10 +103,25 @@ def test_create_and_read_all_food_storage(db_connection):
     food_type = create_food_type(db_connection, "Fruits")
     apple = create_food_storage(db_connection, "Apple", 1.0, "kg", food_type["id"], "2022-12-31")
     banana = create_food_storage(db_connection, "Banana", 2.0, "kg", food_type["id"], "2023-01-31")
-    read_banana_result = read_food_storage_by_id(db_connection, banana["id"])
-    read_apple_result = read_food_storage_by_id(db_connection, apple["id"])
-    assert read_banana_result['name'] == "Banana"
-    assert read_apple_result['name'] == "Apple"
+    result = read_all_food_storage(db_connection)
+    # for loop to check if the food storage items are in the result
+    for food_storage in result:
+        if food_storage["id"] == apple["id"]:
+            assert food_storage["name"] == "Apple"
+        elif food_storage["id"] == banana["id"]:
+            assert food_storage["name"] == "Banana"
+
+
+def test_create_and_read_food_type_by_name(db_connection):
+    create_food_type(db_connection, "Something Else")
+    result = read_food_type_by_name(db_connection, "Something Else")
+    assert result['name'] == "Something Else"
+
+    result = read_food_type_by_name(db_connection, "Other Thing")
+    assert result is None
+
+    result = read_food_type_by_name(db_connection, "")
+    assert result is None
 
 
 # Boundary tests

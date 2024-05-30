@@ -4,7 +4,7 @@ from tkinter import ttk
 import datetime
 
 # Global variables
-(CONNECTION, CURSOR, ROOT, ENTRY_NAME, ENTRY_QUANTITY, ENTRY_UNITY, ENTRY_EXPIRATION_DATE, FOOD_TYPE_COMBOBOX,
+(CONNECTION, CURSOR, ROOT, ENTRY_NAME, ENTRY_QUANTITY, ENTRY_UNITY, ENTRY_EXPIRATION_DATE, FOOD_TYPE_NAME_COMBOBOX,
  FOOD_STORAGE_TREE) = (None, None, None, None, None, None, None, None, None)
 
 
@@ -139,12 +139,12 @@ def read_all_food_types(cursor):
     return all_food_types
 
 
-def read_food_type_by_id(cursor, food_storage_id):
+def read_food_type_by_id(cursor, food_type_id):
     """
     Retrieve a food type by id from the database.
 
     :param cursor: sqlite3.Cursor
-    :param food_storage_id: int
+    :param food_type_id: int
 
     Returns (dict):
         - id: int
@@ -155,7 +155,7 @@ def read_food_type_by_id(cursor, food_storage_id):
     cursor.execute("""
     SELECT * FROM food_type
     WHERE id = ?
-    """, (food_storage_id,))
+    """, (food_type_id,))
     food_type = cursor.fetchone()
 
     if food_type is None:
@@ -169,12 +169,42 @@ def read_food_type_by_id(cursor, food_storage_id):
     }
 
 
-def update_food_type_by_id(cursor, food_storage_id, name):
+def read_food_type_by_name(cursor, food_type_name):
+    """
+    Retrieve a food type by name from the database.
+
+    :param cursor: sqlite3.Cursor
+    :param food_type_name: str
+
+    Returns (dict):
+        - id: int
+        - name: str
+        - created_at: str
+        - updated_at: str
+    """
+    cursor.execute("""
+    SELECT * FROM food_type
+    WHERE name = ?
+    """, (food_type_name,))
+    food_type = cursor.fetchone()
+
+    if food_type is None:
+        return None
+
+    return {
+        "id": food_type[0],
+        "name": food_type[1],
+        "created_at": food_type[2],
+        "updated_at": food_type[3]
+    }
+
+
+def update_food_type_by_id(cursor, food_type_id, name):
     """
     Update a food type by id in the database.
 
     :param cursor: sqlite3.Cursor
-    :param food_storage_id: int
+    :param food_type_id: int
     :param name: str
 
     Returns (dict):
@@ -183,7 +213,7 @@ def update_food_type_by_id(cursor, food_storage_id, name):
         - created_at: str
         - updated_at: str
     """
-    existing_food_type = read_food_type_by_id(cursor, food_storage_id)
+    existing_food_type = read_food_type_by_id(cursor, food_type_id)
     if existing_food_type is None:
         return "A food type with this id does not exist."
 
@@ -198,9 +228,9 @@ def update_food_type_by_id(cursor, food_storage_id, name):
     UPDATE food_type
     SET name = ?, updated_at = ?
     WHERE id = ?
-    """, (name, updated_at, food_storage_id))
+    """, (name, updated_at, food_type_id))
 
-    food_type = read_food_type_by_id(cursor, food_storage_id)
+    food_type = read_food_type_by_id(cursor, food_type_id)
     return {
         "id": food_type["id"],
         "name": food_type["name"],
@@ -209,22 +239,22 @@ def update_food_type_by_id(cursor, food_storage_id, name):
     }
 
 
-def delete_food_type_by_id(cursor, food_storage_id):
+def delete_food_type_by_id(cursor, food_type_id):
     """
     Delete a food type by id from the database.
 
     :param cursor: sqlite3.Cursor
-    :param food_storage_id: int
+    :param food_type_id: int
     :return: str
     """
-    existing_food_type = read_food_type_by_id(cursor, food_storage_id)
+    existing_food_type = read_food_type_by_id(cursor, food_type_id)
     if existing_food_type is None:
         return "A food type with this id does not exist."
 
     cursor.execute("""
     DELETE FROM food_type
     WHERE id = ?
-    """, (food_storage_id,))
+    """, (food_type_id,))
 
 
 def create_food_storage(cursor, name, quantity, unit, food_type_id, expiration_date):
@@ -293,12 +323,25 @@ def read_all_food_storage(cursor):
             - quantity: float
             - unit: str
             - food_type_id: int
+            - food_type_name: str
             - expiration_date: str
             - created_at: str
             - updated_at: str
     """
     cursor.execute("""
-    SELECT * FROM food_storage
+    SELECT
+        food_storage.id,
+        food_storage.name,
+        food_storage.quantity,
+        food_storage.unit,
+        food_storage.food_type_id,
+        food_type.name,
+        food_storage.expiration_date,
+        food_storage.created_at,
+        food_storage.updated_at
+     FROM food_storage
+     JOIN food_type
+     ON food_storage.food_type_id = food_type.id
     """)
 
     all_food_storage = []
@@ -310,9 +353,10 @@ def read_all_food_storage(cursor):
             "quantity": food_storage[2],
             "unit": food_storage[3],
             "food_type_id": food_storage[4],
-            "expiration_date": food_storage[5],
-            "created_at": food_storage[6],
-            "updated_at": food_storage[7]
+            "food_type_name": food_storage[5],
+            "expiration_date": food_storage[6],
+            "created_at": food_storage[7],
+            "updated_at": food_storage[8]
         })
 
     return all_food_storage
@@ -428,14 +472,12 @@ def on_create_food_storage():
     name = ENTRY_NAME.get()
     quantity = float(ENTRY_QUANTITY.get())
     unit = ENTRY_UNITY.get()
-    food_type = FOOD_TYPE_COMBOBOX.get()
+    food_type_name = FOOD_TYPE_NAME_COMBOBOX.get()
     expiration_date = ENTRY_EXPIRATION_DATE.get()
 
-    CURSOR.execute("SELECT id FROM food_type WHERE name = ?", (food_type,))
-    food_type_id = CURSOR.fetchone()[0]
+    food_type = read_food_type_by_name(CURSOR, food_type_name)
 
-    create_food_storage(CURSOR, name, quantity, unit, food_type_id, expiration_date)
-    CONNECTION.commit()
+    create_food_storage(CURSOR, name, quantity, unit, food_type["id"], expiration_date)
     load_food_storage_data()
 
 
@@ -446,14 +488,12 @@ def on_update_food_storage():
     name = ENTRY_NAME.get()
     quantity = float(ENTRY_QUANTITY.get())
     unit = ENTRY_UNITY.get()
-    food_type = FOOD_TYPE_COMBOBOX.get()
+    food_type_name = FOOD_TYPE_NAME_COMBOBOX.get()
     expiration_date = ENTRY_EXPIRATION_DATE.get()
 
-    CURSOR.execute("SELECT id FROM food_type WHERE name = ?", (food_type,))
-    food_type_id = CURSOR.fetchone()[0]
+    food_type = read_food_type_by_name(CURSOR, food_type_name)
 
-    update_food_storage_by_id(CURSOR, food_storage_id, name, quantity, unit, food_type_id, expiration_date)
-    CONNECTION.commit()
+    update_food_storage_by_id(CURSOR, food_storage_id, name, quantity, unit, food_type["id"], expiration_date)
     load_food_storage_data()
 
 
@@ -461,7 +501,6 @@ def on_delete_food_storage():
     selected_item = FOOD_STORAGE_TREE.selection()[0]
     food_storage_id = FOOD_STORAGE_TREE.item(selected_item, "values")[0]
     delete_food_storage_by_id(CURSOR, food_storage_id)
-    CONNECTION.commit()
     load_food_storage_data()
 
 
@@ -471,7 +510,7 @@ def load_food_storage_data():
     food_storage_items = read_all_food_storage(CURSOR)
     for item in food_storage_items:
         FOOD_STORAGE_TREE.insert('', 'end', values=(
-            item["id"], item["name"], item["quantity"], item["unit"], item["food_type_id"], item["expiration_date"]))
+            item["id"], item["name"], item["quantity"], item["unit"], item["food_type_name"], item["expiration_date"]))
 
 
 def create_labels():
@@ -483,15 +522,18 @@ def create_labels():
 
 
 def create_entries():
-    global ENTRY_NAME, ENTRY_QUANTITY, ENTRY_UNITY, ENTRY_EXPIRATION_DATE, FOOD_TYPE_COMBOBOX
+    global ENTRY_NAME, ENTRY_QUANTITY, ENTRY_UNITY, ENTRY_EXPIRATION_DATE, FOOD_TYPE_NAME_COMBOBOX
     ENTRY_NAME = tk.Entry(ROOT)
     ENTRY_NAME.grid(row=0, column=1)
     ENTRY_QUANTITY = tk.Entry(ROOT)
     ENTRY_QUANTITY.grid(row=1, column=1)
     ENTRY_UNITY = tk.Entry(ROOT)
     ENTRY_UNITY.grid(row=2, column=1)
-    FOOD_TYPE_COMBOBOX = ttk.Combobox(ROOT, values=[ft["name"] for ft in read_all_food_types(CURSOR)])
-    FOOD_TYPE_COMBOBOX.grid(row=3, column=1)
+
+    names = [ft["name"] for ft in read_all_food_types(CURSOR)]
+
+    FOOD_TYPE_NAME_COMBOBOX = ttk.Combobox(ROOT, values=names)
+    FOOD_TYPE_NAME_COMBOBOX.grid(row=3, column=1)
     ENTRY_EXPIRATION_DATE = tk.Entry(ROOT)
     ENTRY_EXPIRATION_DATE.grid(row=4, column=1)
 
@@ -504,7 +546,7 @@ def create_buttons():
 
 def create_treeview():
     global FOOD_STORAGE_TREE
-    columns = ("id", "name", "quantity", "unit", "food_type_id", "expiration_date")
+    columns = ("id", "name", "quantity", "unit", "food_type_name", "expiration_date")
     FOOD_STORAGE_TREE = ttk.Treeview(ROOT, columns=columns, show="headings")
     for col in columns:
         FOOD_STORAGE_TREE.heading(col, text=col)
