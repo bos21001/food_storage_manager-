@@ -509,6 +509,32 @@ def on_delete_food_storage():
     CURSOR.connection.commit()
 
 
+def on_treeview_select(event):
+    is_not_selected = FOOD_STORAGE_TREE.item(FOOD_STORAGE_TREE.selection())["values"] == ""
+
+    if is_not_selected:
+        return
+
+    selected_item = FOOD_STORAGE_TREE.selection()[0]
+    item = FOOD_STORAGE_TREE.item(selected_item)
+    food_storage = item['values']
+
+    ENTRY_NAME.delete(0, tk.END)
+    ENTRY_NAME.insert(0, food_storage[1])
+
+    ENTRY_QUANTITY.delete(0, tk.END)
+    ENTRY_QUANTITY.insert(0, food_storage[2])
+
+    ENTRY_UNITY.delete(0, tk.END)
+    ENTRY_UNITY.insert(0, food_storage[3])
+
+    FOOD_TYPE_NAME_COMBOBOX.set('')
+    FOOD_TYPE_NAME_COMBOBOX.set(food_storage[4])
+
+    ENTRY_EXPIRATION_DATE.delete(0, tk.END)
+    ENTRY_EXPIRATION_DATE.insert(0, food_storage[5])
+
+
 def load_food_storage_data():
     for item in FOOD_STORAGE_TREE.get_children():
         FOOD_STORAGE_TREE.delete(item)
@@ -555,6 +581,9 @@ def create_treeview():
     FOOD_STORAGE_TREE = ttk.Treeview(ROOT, columns=columns, show="headings")
     for col in columns:
         FOOD_STORAGE_TREE.heading(col, text=col)
+
+    FOOD_STORAGE_TREE.bind('<<TreeviewSelect>>', on_treeview_select)
+
     FOOD_STORAGE_TREE.grid(row=6, column=0, columnspan=3)
 
 
