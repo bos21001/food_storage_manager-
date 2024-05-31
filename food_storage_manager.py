@@ -437,7 +437,9 @@ def update_food_storage_by_id(cursor, food_storage_id, name, quantity, unit, foo
     SET name = ?, quantity = ?, unit = ?, food_type_id = ?, expiration_date = ?, updated_at = ?
     WHERE id = ?
     """, (name, quantity, unit, food_type_id, expiration_date, updated_at, food_storage_id))
+
     food_storage = read_food_storage_by_id(cursor, food_storage_id)
+
     return {
         "id": food_storage["id"],
         "name": food_storage["name"],
@@ -479,6 +481,7 @@ def on_create_food_storage():
 
     create_food_storage(CURSOR, name, quantity, unit, food_type["id"], expiration_date)
     load_food_storage_data()
+    CURSOR.connection.commit()
 
 
 def on_update_food_storage():
@@ -495,6 +498,7 @@ def on_update_food_storage():
 
     update_food_storage_by_id(CURSOR, food_storage_id, name, quantity, unit, food_type["id"], expiration_date)
     load_food_storage_data()
+    CURSOR.connection.commit()
 
 
 def on_delete_food_storage():
@@ -502,6 +506,7 @@ def on_delete_food_storage():
     food_storage_id = FOOD_STORAGE_TREE.item(selected_item, "values")[0]
     delete_food_storage_by_id(CURSOR, food_storage_id)
     load_food_storage_data()
+    CURSOR.connection.commit()
 
 
 def load_food_storage_data():

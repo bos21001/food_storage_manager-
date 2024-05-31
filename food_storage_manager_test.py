@@ -89,7 +89,7 @@ def test_update_existing_food_storage_by_id(db_connection):
 
 def test_update_non_existing_food_storage_by_id(db_connection):
     result = update_food_storage_by_id(db_connection, 999, "Banana", 2.0, "kg", 1, "2023-12-31")
-    assert result == "A food type with this id does not exist."
+    assert result == "A food storage item with this id does not exist."
 
 
 def test_delete_existing_food_storage_by_id(db_connection):
