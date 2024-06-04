@@ -1,6 +1,6 @@
 import sqlite3
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import datetime
 
 # Global variables
@@ -470,43 +470,158 @@ def delete_food_storage_by_id(cursor, food_storage_id):
     """, (food_storage_id,))
 
 
-def on_create_food_storage():
+def get_food_storage_inputs():
+    """
+    Retrieve the user inputs from the entry fields.
+
+    Returns (dict):
+        - name: str
+        - quantity: float
+        - unit: str
+        - food_type: dict
+        - expiration_date: str
+    """
+
     name = ENTRY_NAME.get()
-    quantity = float(ENTRY_QUANTITY.get())
+
+    # If name is empty, return an error message
+    if not name:
+        tk.messagebox.showerror("Error", "Name cannot be empty.")
+        return
+
+    quantity = ENTRY_QUANTITY.get()
+
+    # if quantity is empty, return an error message
+    if not quantity:
+        tk.messagebox.showerror("Error", "Quantity cannot be empty.")
+        return
+    # if quantity is not float, return an error message
+    try:
+        quantity = float(quantity)
+    except ValueError:
+        tk.messagebox.showerror("Error", "Quantity must be a number.")
+        return
+
+    if quantity < 0:
+        tk.messagebox.showerror("Error", "Quantity cannot be negative.")
+        return
+
     unit = ENTRY_UNITY.get()
+
+    if not unit:
+        tk.messagebox.showerror("Error", "Unit cannot be empty.")
+        return
+
     food_type_name = FOOD_TYPE_NAME_COMBOBOX.get()
-    expiration_date = ENTRY_EXPIRATION_DATE.get()
+
+    if not food_type_name:
+        tk.messagebox.showerror("Error", "Food Type cannot be empty.")
+        return
 
     food_type = read_food_type_by_name(CURSOR, food_type_name)
 
-    create_food_storage(CURSOR, name, quantity, unit, food_type["id"], expiration_date)
+    # if food type name is not in the list, return an error message
+    if food_type is None:
+        tk.messagebox.showerror("Error", "Food Type does not exist.")
+        return
+
+    expiration_date = ENTRY_EXPIRATION_DATE.get()
+
+    if not expiration_date:
+        tk.messagebox.showerror("Error", "Expiration Date cannot be empty.")
+        return
+
+    # if expiration date is not in the correct format, return an error message
+    try:
+        datetime.datetime.strptime(expiration_date, "%Y-%m-%d")
+    except ValueError:
+        tk.messagebox.showerror("Error", "Expiration Date must be in the format YYYY-MM-DD.")
+        return
+
+    return {
+        "name": name,
+        "quantity": quantity,
+        "unit": unit,
+        "food_type": food_type,
+        "expiration_date": expiration_date
+    }
+
+
+def on_create_food_storage():
+    inputs = get_food_storage_inputs()
+
+    if not inputs:
+        return
+
+    created_food_storage = create_food_storage(CURSOR, inputs["name"], inputs["quantity"], inputs["unit"],
+                                               inputs["food_type"]["id"], inputs["expiration_date"])
+
+    if isinstance(created_food_storage, str):
+        tk.messagebox.showerror("Error", created_food_storage)
+        return
+
     load_food_storage_data()
     CURSOR.connection.commit()
+
+    tk.messagebox.showinfo("Success", "Food Storage item created successfully.")
 
 
 def on_update_food_storage():
-    selected_item = FOOD_STORAGE_TREE.selection()[0]
+    try:
+        selected_item = FOOD_STORAGE_TREE.selection()[0]
+    except IndexError:
+        selected_item = None
+
+    # if no item is selected, return an error message
+    if not selected_item:
+        tk.messagebox.showerror("Error", "Please select an item.")
+        return
+
     food_storage_id = FOOD_STORAGE_TREE.item(selected_item, "values")[0]
 
-    name = ENTRY_NAME.get()
-    quantity = float(ENTRY_QUANTITY.get())
-    unit = ENTRY_UNITY.get()
-    food_type_name = FOOD_TYPE_NAME_COMBOBOX.get()
-    expiration_date = ENTRY_EXPIRATION_DATE.get()
+    inputs = get_food_storage_inputs()
 
-    food_type = read_food_type_by_name(CURSOR, food_type_name)
+    if not inputs:
+        return
 
-    update_food_storage_by_id(CURSOR, food_storage_id, name, quantity, unit, food_type["id"], expiration_date)
+    updated_food_storage = update_food_storage_by_id(CURSOR, food_storage_id, inputs["name"], inputs["quantity"], inputs["unit"], inputs["food_type"]["id"], inputs["expiration_date"])
+
+    # if updated_food_storage is a string, it means an error occurred
+    if isinstance(updated_food_storage, str):
+        tk.messagebox.showerror("Unknown Error", updated_food_storage)
+        return
+
     load_food_storage_data()
     CURSOR.connection.commit()
+
+    tk.messagebox.showinfo("Success", "Food Storage item updated successfully.")
 
 
 def on_delete_food_storage():
-    selected_item = FOOD_STORAGE_TREE.selection()[0]
-    food_storage_id = FOOD_STORAGE_TREE.item(selected_item, "values")[0]
-    delete_food_storage_by_id(CURSOR, food_storage_id)
+    food_storage_id = None
+
+    try:
+        selected_item = FOOD_STORAGE_TREE.selection()[0]
+        food_storage_id = FOOD_STORAGE_TREE.item(selected_item, "values")[0]
+    except IndexError:
+        selected_item = None
+
+    # if no item is selected, return an error message
+    if not selected_item:
+        tk.messagebox.showerror("Error", "Please select an item.")
+        return
+
+    deleted_food_storage = delete_food_storage_by_id(CURSOR, food_storage_id)
+
+    # if deleted_food_storage is a string, it means an error occurred
+    if isinstance(deleted_food_storage, str):
+        tk.messagebox.showerror("Unknown Error", deleted_food_storage)
+        return
+
     load_food_storage_data()
     CURSOR.connection.commit()
+
+    tk.messagebox.showinfo("Success", "Food Storage item deleted successfully.")
 
 
 def on_treeview_select(event):
@@ -536,12 +651,22 @@ def on_treeview_select(event):
 
 
 def load_food_storage_data():
-    for item in FOOD_STORAGE_TREE.get_children():
-        FOOD_STORAGE_TREE.delete(item)
-    food_storage_items = read_all_food_storage(CURSOR)
-    for item in food_storage_items:
-        FOOD_STORAGE_TREE.insert('', 'end', values=(
-            item["id"], item["name"], item["quantity"], item["unit"], item["food_type_name"], item["expiration_date"]))
+    try:
+        ENTRY_NAME.delete(0, tk.END)
+        ENTRY_QUANTITY.delete(0, tk.END)
+        ENTRY_UNITY.delete(0, tk.END)
+        ENTRY_EXPIRATION_DATE.delete(0, tk.END)
+        FOOD_TYPE_NAME_COMBOBOX.set('')
+
+        for item in FOOD_STORAGE_TREE.get_children():
+            FOOD_STORAGE_TREE.delete(item)
+        food_storage_items = read_all_food_storage(CURSOR)
+        for item in food_storage_items:
+            FOOD_STORAGE_TREE.insert('', 'end', values=(
+                item["id"], item["name"], item["quantity"], item["unit"], item["food_type_name"],
+                item["expiration_date"]))
+    except Exception as e:
+        tk.messagebox.showerror("Unknown Error:", str(e))
 
 
 def create_labels():
