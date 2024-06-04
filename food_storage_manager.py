@@ -6,6 +6,7 @@ import datetime
 # Global variables
 global CONNECTION, CURSOR
 global ROOT, ENTRY_NAME, ENTRY_QUANTITY, ENTRY_UNITY, ENTRY_EXPIRATION_DATE, FOOD_TYPE_NAME_COMBOBOX, FOOD_STORAGE_TREE
+global FOOD_TYPE_NAME_ENTRY, FOOD_TYPE_TREE, TAB_CONTROL
 
 
 def database_connection():
@@ -584,7 +585,9 @@ def on_update_food_storage():
     if not inputs:
         return
 
-    updated_food_storage = update_food_storage_by_id(CURSOR, food_storage_id, inputs["name"], inputs["quantity"], inputs["unit"], inputs["food_type"]["id"], inputs["expiration_date"])
+    updated_food_storage = update_food_storage_by_id(CURSOR, food_storage_id, inputs["name"], inputs["quantity"],
+                                                     inputs["unit"], inputs["food_type"]["id"],
+                                                     inputs["expiration_date"])
 
     # if updated_food_storage is a string, it means an error occurred
     if isinstance(updated_food_storage, str):
@@ -669,41 +672,41 @@ def load_food_storage_data():
         tk.messagebox.showerror("Unknown Error:", str(e))
 
 
-def create_labels():
-    tk.Label(ROOT, text="Name:").grid(row=0, column=0)
-    tk.Label(ROOT, text="Quantity:").grid(row=1, column=0)
-    tk.Label(ROOT, text="Unit:").grid(row=2, column=0)
-    tk.Label(ROOT, text="Food Type:").grid(row=3, column=0)
-    tk.Label(ROOT, text="Expiration Date (YYYY-MM-DD):").grid(row=4, column=0)
+def create_labels(food_storage_tab):
+    tk.Label(food_storage_tab, text="Food Storage Name:").grid(row=0, column=0)
+    tk.Label(food_storage_tab, text="Quantity:").grid(row=1, column=0)
+    tk.Label(food_storage_tab, text="Unit:").grid(row=2, column=0)
+    tk.Label(food_storage_tab, text="Food Type:").grid(row=3, column=0)
+    tk.Label(food_storage_tab, text="Expiration Date (YYYY-MM-DD):").grid(row=4, column=0)
 
 
-def create_entries():
+def create_entries(food_storage_tab):
     global ENTRY_NAME, ENTRY_QUANTITY, ENTRY_UNITY, ENTRY_EXPIRATION_DATE, FOOD_TYPE_NAME_COMBOBOX
-    ENTRY_NAME = tk.Entry(ROOT)
+    ENTRY_NAME = tk.Entry(food_storage_tab)
     ENTRY_NAME.grid(row=0, column=1)
-    ENTRY_QUANTITY = tk.Entry(ROOT)
+    ENTRY_QUANTITY = tk.Entry(food_storage_tab)
     ENTRY_QUANTITY.grid(row=1, column=1)
-    ENTRY_UNITY = tk.Entry(ROOT)
+    ENTRY_UNITY = tk.Entry(food_storage_tab)
     ENTRY_UNITY.grid(row=2, column=1)
 
     names = [ft["name"] for ft in read_all_food_types(CURSOR)]
 
-    FOOD_TYPE_NAME_COMBOBOX = ttk.Combobox(ROOT, values=names)
+    FOOD_TYPE_NAME_COMBOBOX = ttk.Combobox(food_storage_tab, values=names)
     FOOD_TYPE_NAME_COMBOBOX.grid(row=3, column=1)
-    ENTRY_EXPIRATION_DATE = tk.Entry(ROOT)
+    ENTRY_EXPIRATION_DATE = tk.Entry(food_storage_tab)
     ENTRY_EXPIRATION_DATE.grid(row=4, column=1)
 
 
-def create_buttons():
-    tk.Button(ROOT, text="Add", command=on_create_food_storage).grid(row=5, column=0)
-    tk.Button(ROOT, text="Update", command=on_update_food_storage).grid(row=5, column=1)
-    tk.Button(ROOT, text="Delete", command=on_delete_food_storage).grid(row=5, column=2)
+def create_buttons(food_storage_tab):
+    tk.Button(food_storage_tab, text="Add", command=on_create_food_storage).grid(row=5, column=0)
+    tk.Button(food_storage_tab, text="Update", command=on_update_food_storage).grid(row=5, column=1)
+    tk.Button(food_storage_tab, text="Delete", command=on_delete_food_storage).grid(row=5, column=2)
 
 
-def create_treeview():
+def create_treeview(food_storage_tab):
     global FOOD_STORAGE_TREE
     columns = ("id", "name", "quantity", "unit", "food_type_name", "expiration_date")
-    FOOD_STORAGE_TREE = ttk.Treeview(ROOT, columns=columns, show="headings")
+    FOOD_STORAGE_TREE = ttk.Treeview(food_storage_tab, columns=columns, show="headings")
     for col in columns:
         FOOD_STORAGE_TREE.heading(col, text=col)
 
@@ -712,8 +715,150 @@ def create_treeview():
     FOOD_STORAGE_TREE.grid(row=6, column=0, columnspan=3)
 
 
+def create_food_storage_tab():
+    global ENTRY_NAME, ENTRY_QUANTITY, ENTRY_UNITY, ENTRY_EXPIRATION_DATE, FOOD_TYPE_NAME_COMBOBOX, FOOD_STORAGE_TREE
+
+    food_storage_tab = ttk.Frame(TAB_CONTROL)
+    TAB_CONTROL.add(food_storage_tab, text='Manage Food Storage')
+
+    create_labels(food_storage_tab)
+    create_entries(food_storage_tab)
+    create_buttons(food_storage_tab)
+    create_treeview(food_storage_tab)
+
+    load_food_storage_data()
+
+
+def create_food_type_tab():
+    global FOOD_TYPE_NAME_ENTRY, FOOD_TYPE_TREE
+
+    food_type_tab = ttk.Frame(TAB_CONTROL)
+    TAB_CONTROL.add(food_type_tab, text='Manage Food Types')
+
+    # Create widgets for food type management
+    tk.Label(food_type_tab, text="Food Type Name:").grid(row=0, column=0)
+    FOOD_TYPE_NAME_ENTRY = tk.Entry(food_type_tab)
+    FOOD_TYPE_NAME_ENTRY.grid(row=0, column=1)
+
+    tk.Button(food_type_tab, text="Add", command=on_create_food_type).grid(row=1, column=0)
+    tk.Button(food_type_tab, text="Update", command=on_update_food_type).grid(row=1, column=1)
+    tk.Button(food_type_tab, text="Delete", command=on_delete_food_type).grid(row=1, column=2)
+
+    columns = ("id", "name")
+    FOOD_TYPE_TREE = ttk.Treeview(food_type_tab, columns=columns, show="headings")
+    for col in columns:
+        FOOD_TYPE_TREE.heading(col, text=col)
+
+    FOOD_TYPE_TREE.bind('<<TreeviewSelect>>', on_food_type_treeview_select)
+
+    FOOD_TYPE_TREE.grid(row=2, column=0, columnspan=3)
+
+    load_food_type_data()
+
+
+def on_create_food_type():
+    name = FOOD_TYPE_NAME_ENTRY.get()
+
+    if not name:
+        tk.messagebox.showerror("Error", "Name cannot be empty.")
+        return
+
+    created_food_type = create_food_type(CURSOR, name)
+
+    if isinstance(created_food_type, str):
+        tk.messagebox.showerror("Error", created_food_type)
+        return
+
+    load_food_type_data()
+    load_food_storage_data()
+    CURSOR.connection.commit()
+
+    tk.messagebox.showinfo("Success", "Food Type created successfully.")
+
+
+def on_update_food_type():
+    try:
+        selected_item = FOOD_TYPE_TREE.selection()[0]
+    except IndexError:
+        selected_item = None
+
+    if not selected_item:
+        tk.messagebox.showerror("Error", "Please select an item.")
+        return
+
+    food_type_id = FOOD_TYPE_TREE.item(selected_item, "values")[0]
+    name = FOOD_TYPE_NAME_ENTRY.get()
+
+    if not name:
+        tk.messagebox.showerror("Error", "Name cannot be empty.")
+        return
+
+    updated_food_type = update_food_type_by_id(CURSOR, food_type_id, name)
+
+    if isinstance(updated_food_type, str):
+        tk.messagebox.showerror("Error", updated_food_type)
+        return
+
+    load_food_type_data()
+    load_food_storage_data()
+    CURSOR.connection.commit()
+
+    tk.messagebox.showinfo("Success", "Food Type updated successfully.")
+
+
+def on_delete_food_type():
+    try:
+        selected_item = FOOD_TYPE_TREE.selection()[0]
+    except IndexError:
+        selected_item = None
+
+    if not selected_item:
+        tk.messagebox.showerror("Error", "Please select an item.")
+        return
+
+    food_type_id = FOOD_TYPE_TREE.item(selected_item, "values")[0]
+
+    # TODO: Check if food type is being used in food storage items
+    # TODO: If it is being used, replace the food type with a default food type (e.g. "Other")
+
+    delete_food_type_by_id(CURSOR, food_type_id)
+
+    load_food_type_data()
+    load_food_storage_data()
+    CURSOR.connection.commit()
+
+    tk.messagebox.showinfo("Success", "Food Type deleted successfully.")
+
+
+def on_food_type_treeview_select(event):
+    is_not_selected = FOOD_TYPE_TREE.item(FOOD_TYPE_TREE.selection())["values"] == ""
+
+    if is_not_selected:
+        return
+
+    selected_item = FOOD_TYPE_TREE.selection()[0]
+    item = FOOD_TYPE_TREE.item(selected_item)
+    food_type = item['values']
+
+    FOOD_TYPE_NAME_ENTRY.delete(0, tk.END)
+    FOOD_TYPE_NAME_ENTRY.insert(0, food_type[1])
+
+
+def load_food_type_data():
+    try:
+        FOOD_TYPE_NAME_ENTRY.delete(0, tk.END)
+
+        for item in FOOD_TYPE_TREE.get_children():
+            FOOD_TYPE_TREE.delete(item)
+        food_types = read_all_food_types(CURSOR)
+        for item in food_types:
+            FOOD_TYPE_TREE.insert('', 'end', values=(item["id"], item["name"]))
+    except Exception as e:
+        tk.messagebox.showerror("Unknown Error:", str(e))
+
+
 def main():
-    global CONNECTION, CURSOR, ROOT
+    global CONNECTION, CURSOR, ROOT, TAB_CONTROL
     CONNECTION, CURSOR = database_connection()
 
     food_types = read_all_food_types(CURSOR)
@@ -724,12 +869,12 @@ def main():
     ROOT = tk.Tk()
     ROOT.title("Food Storage Manager")
 
-    create_labels()
-    create_entries()
-    create_buttons()
-    create_treeview()
+    TAB_CONTROL = ttk.Notebook(ROOT)
 
-    load_food_storage_data()
+    create_food_storage_tab()
+    create_food_type_tab()
+
+    TAB_CONTROL.pack(expand=1, fill='both')
 
     ROOT.mainloop()
 
