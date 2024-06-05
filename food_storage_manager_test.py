@@ -40,8 +40,8 @@ def test_read_non_existing_food_type_by_id(db_connection):
 
 
 def test_update_existing_food_type_by_id(db_connection):
-    create_food_type(db_connection, "Fruits")
-    result = update_food_type_by_id(db_connection, 1, "Vegetables")
+    created_food_type = create_food_type(db_connection, "Fruits")
+    result = update_food_type_by_id(db_connection, created_food_type["id"], "Vegetables")
     assert result['name'] == "Vegetables"
 
 
@@ -88,7 +88,8 @@ def test_update_existing_food_storage_by_id(db_connection):
 
 
 def test_update_non_existing_food_storage_by_id(db_connection):
-    result = update_food_storage_by_id(db_connection, 999, "Banana", 2.0, "kg", 1, "2023-12-31")
+    all_food_types = read_all_food_types(db_connection)
+    result = update_food_storage_by_id(db_connection, 999, "Banana", 2.0, "kg", all_food_types[0]["id"], "2023-12-31")
     assert result == "A food storage item with this id does not exist."
 
 
@@ -106,8 +107,8 @@ def test_delete_non_existing_food_storage_by_id(db_connection):
 
 
 def test_update_food_storage_with_non_existing_food_type(db_connection):
-    seed_food_types(db_connection)
-    food_storage = create_food_storage(db_connection, "Apple", 1.0, "kg", 1, "2022-12-31")
+    created_food_type = create_food_type(db_connection, "Something Else")
+    food_storage = create_food_storage(db_connection, "Apple", 1.0, "kg", created_food_type["id"], "2022-12-31")
     result = update_food_storage_by_id(db_connection, food_storage["id"], "Banana", 2.0, "kg", 999, "2023-12-31")
     assert result == "A food type with this id does not exist."
 
@@ -140,6 +141,15 @@ def test_create_and_read_food_type_by_name(db_connection):
 # Boundary tests
 def test_create_food_type_with_empty_name(db_connection):
     result = create_food_type(db_connection, "")
+    assert result == "A food type name cannot be empty."
+
+    result = create_food_type(db_connection, " ")
+    assert result == "A food type name cannot be empty."
+
+    result = create_food_type(db_connection, "  ")
+    assert result == "A food type name cannot be empty."
+
+    result = create_food_type(db_connection, None)
     assert result == "A food type name cannot be empty."
 
 

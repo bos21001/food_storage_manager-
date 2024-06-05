@@ -82,7 +82,7 @@ def create_food_type(cursor, name):
 
     :return: dict
     """
-    if not name:
+    if not name or name.strip() == "":
         return "A food type name cannot be empty."
 
     cursor.execute("SELECT * FROM food_type WHERE name = ?", (name,))
@@ -218,6 +218,9 @@ def update_food_type_by_id(cursor, food_type_id, name):
     if existing_food_type is None:
         return "A food type with this id does not exist."
 
+    if existing_food_type["name"] == "Other":
+        return "Cannot update the default food type."
+
     cursor.execute("SELECT * FROM food_type WHERE name = ?", (name,))
     existing_food_type_name = cursor.fetchone()
     if existing_food_type_name is not None:
@@ -251,6 +254,9 @@ def delete_food_type_by_id(cursor, food_type_id):
     existing_food_type = read_food_type_by_id(cursor, food_type_id)
     if existing_food_type is None:
         return "A food type with this id does not exist."
+
+    if existing_food_type["name"] == "Other":
+        return "Cannot delete the default food type."
 
     cursor.execute("""
     DELETE FROM food_type
@@ -820,8 +826,14 @@ def on_delete_food_type():
 
     food_type_id = FOOD_TYPE_TREE.item(selected_item, "values")[0]
 
-    # TODO: Check if food type is being used in food storage items
-    # TODO: If it is being used, replace the food type with a default food type (e.g. "Other")
+    default_food_type_id = read_food_type_by_name(CURSOR, "Other")["id"]
+
+    all_food_storage = read_all_food_storage(CURSOR)
+
+    for food_storage in all_food_storage:
+        if str(food_storage["food_type_id"]) == food_type_id:
+            update_food_storage_by_id(CURSOR, food_storage["id"], food_storage["name"], food_storage["quantity"],
+                                      food_storage["unit"], default_food_type_id, food_storage["expiration_date"])
 
     delete_food_type_by_id(CURSOR, food_type_id)
 
