@@ -1,6 +1,19 @@
-# Importing the necessary functions and libraries.
-from food_storage_manager import *
+# Importing database setting up function and seed function
+from food_storage_manager import database_connection, seed_food_types
+
+# Importing CRUD functions for food types
+from food_storage_manager import read_all_food_types, read_food_type_by_id, read_food_type_by_name, create_food_type, \
+    update_food_type_by_id, delete_food_type_by_id
+
+# Importing CRUD functions for food storage
+from food_storage_manager import read_all_food_storage, read_food_storage_by_id, create_food_storage, \
+    update_food_storage_by_id, delete_food_storage_by_id
 import pytest
+
+"""
+Testing for GUI were not implemented as it is not possible to test GUI using pytest.
+But all its backend functionalities are tested.
+"""
 
 
 @pytest.fixture
@@ -22,154 +35,359 @@ def test_seed_food_types(db_connection):
         assert food_type in names
 
 
-def test_create_and_read_food_type(db_connection):
-    food_type = create_food_type(db_connection, "Fruits")
-    result = read_food_type_by_id(db_connection, food_type["id"])
-    assert result['name'] == "Fruits"
+# Testing CRUD functions for food types
+
+def test_create_food_type(db_connection):
+    created_food_type = create_food_type(db_connection, "Valid Food Type")
+    assert created_food_type["name"] == "Valid Food Type"
+    assert created_food_type["id"] is not None
+    assert created_food_type["created_at"] is not None
+    assert created_food_type["updated_at"] is not None
+
+    created_food_type = create_food_type(db_connection, "    Valid Food  Type 2 ")
+    assert created_food_type["name"] == "Valid Food  Type 2"
+
+    created_food_type = create_food_type(db_connection, created_food_type["name"])
+    assert created_food_type == "A food type with this name already exists."
+
+    created_food_type = create_food_type(db_connection, "")
+    assert created_food_type == "A food type name cannot be empty."
+
+    created_food_type = create_food_type(db_connection, " ")
+    assert created_food_type == "A food type name cannot be empty."
+
+    created_food_type = create_food_type(db_connection, "  ")
+    assert created_food_type == "A food type name cannot be empty."
+
+    created_food_type = create_food_type(db_connection, None)
+    assert created_food_type == "A food type name cannot be empty."
 
 
-def test_create_existing_food_type(db_connection):
-    create_food_type(db_connection, "Fruits")
-    result = create_food_type(db_connection, "Fruits")
-    assert result == "A food type with this name already exists."
+def test_read_all_food_types(db_connection):
+    seed_food_types(db_connection)
 
-
-def test_read_non_existing_food_type_by_id(db_connection):
-    result = read_food_type_by_id(db_connection, 999)
-    assert result is None
-
-
-def test_update_existing_food_type_by_id(db_connection):
-    created_food_type = create_food_type(db_connection, "Fruits")
-    result = update_food_type_by_id(db_connection, created_food_type["id"], "Vegetables")
-    assert result['name'] == "Vegetables"
-
-
-def test_update_non_existing_food_type_by_id(db_connection):
-    result = update_food_type_by_id(db_connection, 999, "Vegetables")
-    assert result == "A food type with this id does not exist."
-
-
-def test_delete_existing_food_type_by_id(db_connection):
-    food_type = create_food_type(db_connection, "Fruits")
-    delete_food_type_by_id(db_connection, food_type["id"])
-    result = read_food_type_by_id(db_connection, food_type["id"])
-    assert result is None
-
-
-def test_delete_non_existing_food_type_by_id(db_connection):
-    result = delete_food_type_by_id(db_connection, 999)
-    assert result == "A food type with this id does not exist."
-
-
-def test_create_and_read_food_storage(db_connection):
-    food_type = create_food_type(db_connection, "Fruits")
-    create_food_storage(db_connection, "Apple", 1.0, "kg", food_type["id"], "2022-12-31")
-    result = read_food_type_by_id(db_connection, food_type["id"])
-    assert result['name'] == "Fruits"
-
-
-def test_create_food_storage_with_non_existing_food_type(db_connection):
-    result = create_food_storage(db_connection, "Apple", 1.0, "kg", 999, "2022-12-31")
-    assert result == "A food type with this id does not exist."
-
-
-def test_read_non_existing_food_storage_by_id(db_connection):
-    result = read_food_storage_by_id(db_connection, 999)
-    assert result is None
-
-
-def test_update_existing_food_storage_by_id(db_connection):
-    food_type = create_food_type(db_connection, "Fruits")
-    food_storage = create_food_storage(db_connection, "Apple", 1.0, "kg", food_type["id"], "2022-12-31")
-    result = update_food_storage_by_id(db_connection, food_storage["id"], "Banana", 2.0, "kg", food_type["id"],
-                                       "2023-12-31")
-    assert result['name'] == "Banana"
-
-
-def test_update_non_existing_food_storage_by_id(db_connection):
     all_food_types = read_all_food_types(db_connection)
-    result = update_food_storage_by_id(db_connection, 999, "Banana", 2.0, "kg", all_food_types[0]["id"], "2023-12-31")
-    assert result == "A food storage item with this id does not exist."
+    assert len(all_food_types) >= 13
+
+    for food_type in all_food_types:
+        assert food_type["name"] is not None
+        assert food_type["id"] is not None
+        assert food_type["created_at"] is not None
+        assert food_type["updated_at"] is not None
 
 
-def test_delete_existing_food_storage_by_id(db_connection):
-    food_type = create_food_type(db_connection, "Fruits")
-    food_storage = create_food_storage(db_connection, "Apple", 1.0, "kg", food_type["id"], "2022-12-31")
-    delete_food_storage_by_id(db_connection, food_storage["id"])
-    result = read_food_storage_by_id(db_connection, food_storage["id"])
-    assert result is None
+def test_read_food_type_by_id(db_connection):
+    seed_food_types(db_connection)
+
+    all_food_types = read_all_food_types(db_connection)
+    for food_type in all_food_types:
+        food_type_id = food_type["id"]
+        food_type_by_id = read_food_type_by_id(db_connection, food_type_id)
+        assert food_type_by_id["name"] == food_type["name"]
+        assert food_type_by_id["id"] == food_type["id"]
+        assert food_type_by_id["created_at"] == food_type["created_at"]
+        assert food_type_by_id["updated_at"] == food_type["updated_at"]
+
+    food_type_by_id = read_food_type_by_id(db_connection, 9999)
+    assert food_type_by_id == "A food type with this id does not exist."
 
 
-def test_delete_non_existing_food_storage_by_id(db_connection):
-    result = delete_food_storage_by_id(db_connection, 999)
-    assert result == "A food storage item with this id does not exist."
+def test_read_food_type_by_name(db_connection):
+    seed_food_types(db_connection)
+
+    all_food_types = read_all_food_types(db_connection)
+    for food_type in all_food_types:
+        food_type_name = food_type["name"]
+        food_type_by_name = read_food_type_by_name(db_connection, food_type_name)
+        assert food_type_by_name["name"] == food_type["name"]
+        assert food_type_by_name["id"] == food_type["id"]
+        assert food_type_by_name["created_at"] == food_type["created_at"]
+        assert food_type_by_name["updated_at"] == food_type["updated_at"]
+
+    food_type_by_name = read_food_type_by_name(db_connection, "Invalid Food Type")
+    assert food_type_by_name == "A food type with this name does not exist."
 
 
-def test_update_food_storage_with_non_existing_food_type(db_connection):
-    created_food_type = create_food_type(db_connection, "Something Else")
-    food_storage = create_food_storage(db_connection, "Apple", 1.0, "kg", created_food_type["id"], "2022-12-31")
-    result = update_food_storage_by_id(db_connection, food_storage["id"], "Banana", 2.0, "kg", 999, "2023-12-31")
-    assert result == "A food type with this id does not exist."
+def test_update_food_type_by_id(db_connection):
+    seed_food_types(db_connection)
+
+    all_food_types = read_all_food_types(db_connection)
+    for food_type in all_food_types:
+        food_type_id = food_type["id"]
+        updated_food_type = update_food_type_by_id(db_connection, food_type_id, f"Updated Food Type{food_type_id}")
+        if food_type["name"] == "Other":
+            assert updated_food_type == "Cannot update the default food type."
+        else:
+            assert updated_food_type["name"] == f"Updated Food Type{food_type_id}"
+            assert updated_food_type["id"] == food_type_id
+            assert updated_food_type["created_at"] == food_type["created_at"]
+            assert updated_food_type["updated_at"] is not food_type["updated_at"]
+
+    updated_food_type = update_food_type_by_id(db_connection, 9999, "Updated Food Type")
+    assert updated_food_type == "A food type with this id does not exist."
+
+    updated_food_type = update_food_type_by_id(db_connection, all_food_types[0]["id"], "")
+    assert updated_food_type == "A food type name cannot be empty."
+
+    updated_food_type = update_food_type_by_id(db_connection, all_food_types[0]["id"], " ")
+    assert updated_food_type == "A food type name cannot be empty."
+
+    updated_food_type = update_food_type_by_id(db_connection, all_food_types[0]["id"], "  ")
+    assert updated_food_type == "A food type name cannot be empty."
+
+    updated_food_type = update_food_type_by_id(db_connection, all_food_types[0]["id"], None)
+    assert updated_food_type == "A food type name cannot be empty."
+
+    food_type = read_food_type_by_id(db_connection, all_food_types[0]["id"])
+    updated_food_type = update_food_type_by_id(db_connection, food_type["id"], food_type["name"])
+    assert updated_food_type == "A food type with this name already exists."
 
 
-def test_create_and_read_all_food_storage(db_connection):
-    food_type = create_food_type(db_connection, "Fruits")
-    apple = create_food_storage(db_connection, "Apple", 1.0, "kg", food_type["id"], "2022-12-31")
-    banana = create_food_storage(db_connection, "Banana", 2.0, "kg", food_type["id"], "2023-01-31")
-    result = read_all_food_storage(db_connection)
-    # for loop to check if the food storage items are in the result
-    for food_storage in result:
-        if food_storage["id"] == apple["id"]:
-            assert food_storage["name"] == "Apple"
-        elif food_storage["id"] == banana["id"]:
-            assert food_storage["name"] == "Banana"
+def test_delete_food_type_by_id(db_connection):
+    seed_food_types(db_connection)
+
+    all_food_types = read_all_food_types(db_connection)
+    for food_type in all_food_types:
+        food_type_id = food_type["id"]
+        deleted_food_type = delete_food_type_by_id(db_connection, food_type_id)
+        if food_type["name"] == "Other":
+            assert deleted_food_type == "Cannot delete the default food type."
+        else:
+            assert deleted_food_type is None
+            food_type_by_id = read_food_type_by_id(db_connection, food_type_id)
+            assert food_type_by_id == "A food type with this id does not exist."
+
+    deleted_food_type = delete_food_type_by_id(db_connection, 9999)
+    assert deleted_food_type == "A food type with this id does not exist."
 
 
-def test_create_and_read_food_type_by_name(db_connection):
-    create_food_type(db_connection, "Something Else")
-    result = read_food_type_by_name(db_connection, "Something Else")
-    assert result['name'] == "Something Else"
+# Testing CRUD functions for food storage
 
-    result = read_food_type_by_name(db_connection, "Other Thing")
-    assert result is None
+def test_create_food_storage(db_connection):
+    created_food_type = create_food_type(db_connection, "Valid Food Type")
+    created_food_storage = create_food_storage(db_connection, "Valid Food Storage", 10, "Kg",
+                                               created_food_type["id"], "2021-01-01")
 
-    result = read_food_type_by_name(db_connection, "")
-    assert result is None
+    assert created_food_storage["name"] == "Valid Food Storage"
+    assert created_food_storage["quantity"] == 10
+    assert created_food_storage["unit"] == "Kg"
+    assert created_food_storage["food_type_id"] == created_food_type["id"]
+    assert created_food_storage["expiration_date"] == "2021-01-01"
+    assert created_food_storage["id"] is not None
+    assert created_food_storage["created_at"] is not None
+    assert created_food_storage["updated_at"] is not None
+
+    created_food_storage = create_food_storage(db_connection, "    Valid Food  Storage 2 ", 10, "Kg",
+                                               created_food_type["id"], "2021-01-01")
+
+    assert created_food_storage["name"] == "Valid Food  Storage 2"
+    assert created_food_storage["quantity"] == 10
+    assert created_food_storage["unit"] == "Kg"
+    assert created_food_storage["food_type_id"] == created_food_type["id"]
+    assert created_food_storage["expiration_date"] == "2021-01-01"
+    assert created_food_storage["id"] is not None
+
+    created_food_storage = create_food_storage(db_connection, "", 10, "Kg",
+                                               created_food_type["id"], "2021-01-01")
+    assert created_food_storage == "Name cannot be empty."
+
+    created_food_storage = create_food_storage(db_connection, " ", 10, "Kg",
+                                               created_food_type["id"], "2021-01-01")
+    assert created_food_storage == "Name cannot be empty."
+
+    created_food_storage = create_food_storage(db_connection, "  ", 10, "Kg",
+                                               created_food_type["id"], "2021-01-01")
+    assert created_food_storage == "Name cannot be empty."
+
+    created_food_storage = create_food_storage(db_connection, None, 10, "Kg",
+                                               created_food_type["id"], "2021-01-01")
+    assert created_food_storage == "Name cannot be empty."
+
+    created_food_storage = create_food_storage(db_connection, "Valid Food Storage", -1, "Kg",
+                                               created_food_type["id"], "2021-01-01")
+    assert created_food_storage == "Quantity cannot be negative."
+
+    created_food_storage = create_food_storage(db_connection, "Valid Food Storage", "wrong", "Kg",
+                                               created_food_type["id"], "2021-01-01")
+    assert created_food_storage == "Quantity must be a number."
+
+    created_food_storage = create_food_storage(db_connection, "Valid Food Storage", 10, "Kg",
+                                               9999, "2021-01-01")
+    assert created_food_storage == "A food type with this id does not exist."
+
+    created_food_storage = create_food_storage(db_connection, "Valid Food Storage", 10, "Kg",
+                                               created_food_type["id"], "")
+    assert created_food_storage == "Expiration Date cannot be empty."
+
+    created_food_storage = create_food_storage(db_connection, "Valid Food Storage", 10, "Kg",
+                                               created_food_type["id"], " ")
+    assert created_food_storage == "Expiration Date cannot be empty."
+
+    created_food_storage = create_food_storage(db_connection, "Valid Food Storage", 10, "Kg",
+                                               created_food_type["id"], "  ")
+    assert created_food_storage == "Expiration Date cannot be empty."
+
+    created_food_storage = create_food_storage(db_connection, "Valid Food Storage", 10, "Kg",
+                                               created_food_type["id"], None)
+    assert created_food_storage == "Expiration Date cannot be empty."
+
+    created_food_storage = create_food_storage(db_connection, "Valid Food Storage", 10, "Kg",
+                                               created_food_type["id"], "2021-30-01")
+    assert created_food_storage == "Expiration Date must be in the format YYYY-MM-DD."
+
+    created_food_storage = create_food_storage(db_connection, "Valid Food Storage", 10, "",
+                                               created_food_type["id"], "2021-01-30")
+    assert created_food_storage == "Unit cannot be empty."
 
 
-# Boundary tests
-def test_create_food_type_with_empty_name(db_connection):
-    result = create_food_type(db_connection, "")
-    assert result == "A food type name cannot be empty."
+def test_read_all_food_storage(db_connection):
+    seed_food_types(db_connection)
 
-    result = create_food_type(db_connection, " ")
-    assert result == "A food type name cannot be empty."
+    all_food_types = read_all_food_types(db_connection)
 
-    result = create_food_type(db_connection, "  ")
-    assert result == "A food type name cannot be empty."
+    # Create food storage for each food type
+    for food_type in all_food_types:
+        create_food_storage(db_connection, f"Food Storage for {food_type['name']}", 10, "Kg",
+                            food_type["id"], "2021-01-01")
 
-    result = create_food_type(db_connection, None)
-    assert result == "A food type name cannot be empty."
+    all_food_storage = read_all_food_storage(db_connection)
+    assert len(all_food_storage) >= 1
+
+    for food_storage in all_food_storage:
+        assert food_storage["name"] is not None
+        assert food_storage["quantity"] is not None
+        assert food_storage["unit"] is not None
+        assert food_storage["food_type_id"] is not None
+        assert food_storage["expiration_date"] is not None
+        assert food_storage["id"] is not None
+        assert food_storage["created_at"] is not None
+        assert food_storage["updated_at"] is not None
 
 
-def test_create_food_storage_with_negative_quantity(db_connection):
-    food_type = create_food_type(db_connection, "Fruits")
-    result = create_food_storage(db_connection, "Apple", -1.0, "kg", food_type["id"], "2022-12-31")
-    assert result == "Quantity cannot be negative."
+def test_read_food_storage_by_id(db_connection):
+    seed_food_types(db_connection)
+
+    all_food_storage = read_all_food_storage(db_connection)
+    for food_storage in all_food_storage:
+        food_storage_id = food_storage["id"]
+        food_storage_by_id = read_food_storage_by_id(db_connection, food_storage_id)
+        assert food_storage_by_id["name"] == food_storage["name"]
+        assert food_storage_by_id["quantity"] == food_storage["quantity"]
+        assert food_storage_by_id["unit"] == food_storage["unit"]
+        assert food_storage_by_id["food_type_id"] == food_storage["food_type_id"]
+        assert food_storage_by_id["expiration_date"] == food_storage["expiration_date"]
+        assert food_storage_by_id["id"] == food_storage["id"]
+        assert food_storage_by_id["created_at"] == food_storage["created_at"]
+        assert food_storage_by_id["updated_at"] == food_storage["updated_at"]
+
+    food_storage_by_id = read_food_storage_by_id(db_connection, 9999)
+    assert food_storage_by_id == "A food storage with this id does not exist."
 
 
-# Integration tests
-def test_create_update_delete_food_type(db_connection):
-    food_type = create_food_type(db_connection, "Fruits")
-    assert food_type["name"] == "Fruits"
+def test_update_food_storage_by_id(db_connection):
+    seed_food_types(db_connection)
 
-    updated_food_type = update_food_type_by_id(db_connection, food_type["id"], "Vegetables")
-    assert updated_food_type["name"] == "Vegetables"
+    all_food_types = read_all_food_types(db_connection)
 
-    delete_food_type_by_id(db_connection, food_type["id"])
-    result = read_food_type_by_id(db_connection, food_type["id"])
-    assert result is None
+    # Create food storage for each food type
+    for food_type in all_food_types:
+        create_food_storage(db_connection, f"Food Storage for {food_type['name']}", 10, "Kg",
+                            food_type["id"], "2021-01-01")
+
+    all_food_storage = read_all_food_storage(db_connection)
+    for food_storage in all_food_storage:
+        food_storage_id = food_storage["id"]
+        updated_food_storage = update_food_storage_by_id(db_connection, food_storage_id,
+                                                         f"Updated Food Storage{food_storage_id}", 20, "L",
+                                                         food_storage["food_type_id"], "2021-01-01")
+        assert updated_food_storage["name"] == f"Updated Food Storage{food_storage_id}"
+        assert updated_food_storage["quantity"] == 20
+        assert updated_food_storage["unit"] == "L"
+        assert updated_food_storage["food_type_id"] == food_storage["food_type_id"]
+        assert updated_food_storage["expiration_date"] == "2021-01-01"
+        assert updated_food_storage["id"] == food_storage_id
+        assert updated_food_storage["created_at"] == food_storage["created_at"]
+        assert updated_food_storage["updated_at"] is not food_storage["updated_at"]
+
+    updated_food_storage = update_food_storage_by_id(db_connection, 9999, "Updated Food Storage", 20, "L",
+                                                     all_food_storage[0]["food_type_id"], "2021-01-01")
+    assert updated_food_storage == "A food storage with this id does not exist."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], "", 20, "L",
+                                                     all_food_storage[0]["food_type_id"], "2021-01-01")
+    assert updated_food_storage == "Name cannot be empty."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], " ", 20, "L",
+                                                     all_food_storage[0]["food_type_id"], "2021-01-01")
+    assert updated_food_storage == "Name cannot be empty."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], "  ", 20, "L",
+                                                     all_food_storage[0]["food_type_id"], "2021-01-01")
+    assert updated_food_storage == "Name cannot be empty."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], None, 20, "L",
+                                                     all_food_storage[0]["food_type_id"], "2021-01-01")
+    assert updated_food_storage == "Name cannot be empty."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], "Updated Food Storage",
+                                                     -1, "L",
+                                                     all_food_storage[0]["food_type_id"], "2021-01-01")
+    assert updated_food_storage == "Quantity cannot be negative."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], "Updated Food Storage",
+                                                     "wrong", "L",
+                                                     all_food_storage[0]["food_type_id"], "2021-01-01")
+    assert updated_food_storage == "Quantity must be a number."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], "Updated Food Storage",
+                                                     20, "",
+                                                     all_food_storage[0]["food_type_id"], "2021-01-01")
+    assert updated_food_storage == "Unit cannot be empty."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], "Updated Food Storage",
+                                                     20, "L",
+                                                     9999, "2021-01-01")
+    assert updated_food_storage == "A food type with this id does not exist."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], "Updated Food Storage",
+                                                     20, "L",
+                                                     all_food_storage[0]["food_type_id"], "")
+    assert updated_food_storage == "Expiration Date cannot be empty."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], "Updated Food Storage",
+                                                     20, "L",
+                                                     all_food_storage[0]["food_type_id"], " ")
+    assert updated_food_storage == "Expiration Date cannot be empty."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], "Updated Food Storage",
+                                                     20, "L",
+                                                     all_food_storage[0]["food_type_id"], "  ")
+    assert updated_food_storage == "Expiration Date cannot be empty."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], "Updated Food Storage",
+                                                     20, "L",
+                                                     all_food_storage[0]["food_type_id"], None)
+    assert updated_food_storage == "Expiration Date cannot be empty."
+
+    updated_food_storage = update_food_storage_by_id(db_connection, all_food_storage[0]["id"], "Updated Food Storage",
+                                                     20, "L",
+                                                     all_food_storage[0]["food_type_id"], "2021-30-01")
+    assert updated_food_storage == "Expiration Date must be in the format YYYY-MM-DD."
+
+
+def test_delete_food_storage_by_id(db_connection):
+    seed_food_types(db_connection)
+
+    all_food_storage = read_all_food_storage(db_connection)
+    for food_storage in all_food_storage:
+        food_storage_id = food_storage["id"]
+        deleted_food_storage = delete_food_storage_by_id(db_connection, food_storage_id)
+        assert deleted_food_storage is None
+        food_storage_by_id = read_food_storage_by_id(db_connection, food_storage_id)
+        assert food_storage_by_id == "A food storage with this id does not exist."
+
+    deleted_food_storage = delete_food_storage_by_id(db_connection, 9999)
+    assert deleted_food_storage == "A food storage with this id does not exist."
 
 
 pytest.main(["-v", "--tb=line", "-rN", __file__])
