@@ -688,7 +688,11 @@ def on_delete_food_type():
 
     food_type_id = FOOD_TYPE_TREE.item(selected_item, "values")[0]
 
-    delete_food_type_by_id(CURSOR, food_type_id)
+    deleted_food_type = delete_food_type_by_id(CURSOR, food_type_id)
+
+    if isinstance(deleted_food_type, str):
+        tk.messagebox.showerror("Error", deleted_food_type)
+        return
 
     update_non_existing_food_type_to_other()
 
