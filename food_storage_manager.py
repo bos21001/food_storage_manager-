@@ -668,6 +668,8 @@ def load_food_storage_data():
             FOOD_STORAGE_TREE.insert('', 'end', values=(
                 item["id"], item["name"], item["quantity"], item["unit"], item["food_type_name"],
                 item["expiration_date"]))
+
+        FOOD_TYPE_NAME_COMBOBOX['values'] = [ft["name"] for ft in read_all_food_types(CURSOR)]
     except Exception as e:
         tk.messagebox.showerror("Unknown Error:", str(e))
 
@@ -875,6 +877,8 @@ def main():
     create_food_type_tab()
 
     TAB_CONTROL.pack(expand=1, fill='both')
+
+    TAB_CONTROL.bind("<<NotebookTabChanged>>", lambda event: load_food_storage_data() or load_food_type_data())
 
     ROOT.mainloop()
 
